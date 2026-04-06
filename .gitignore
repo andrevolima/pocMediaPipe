@@ -1,4 +1,20 @@
-/venv
-/entrada
-/saida
-*.pyc
+# Ambiente virtual
+.venv/
+
+# Imagens de entrada e saída
+entrada/
+saida/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
