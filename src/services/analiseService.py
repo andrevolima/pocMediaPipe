@@ -8,25 +8,32 @@ from src.io.imagemBike import carregar_imagem, listar_imagens, salvar_imagem_ano
 
 def _perguntar_modalidade(numero: int) -> str:
     while True:
-        resposta = input(f"\nImagem {numero} — bike (b) ou corrida (c)? ").strip().lower()
-        if resposta in ("b", "bike"):
+        r = input(f"\nImagem {numero} — bike (b) ou corrida (c)? ").strip().lower()
+        if r in ("b", "bike"):
             return "bike"
-        if resposta in ("c", "corrida"):
+        if r in ("c", "corrida"):
             return "corrida"
         print("  Digite 'b' para bike ou 'c' para corrida.")
 
 
 def _perguntar_fase_joelho(numero: int, modalidade: str) -> int:
     if modalidade == "bike":
-        descricao = "1 - fase superior  |  2 - extensão máxima"
+        desc = "1 - fase superior  |  2 - extensao maxima"
     else:
-        descricao = "1 - contato inicial  |  2 - apoio médio"
-
+        desc = "1 - contato inicial  |  2 - apoio medio"
     while True:
-        resposta = input(f"Imagem {numero} — fase do joelho ({descricao}): ").strip()
-        if resposta in ("1", "2"):
-            return int(resposta)
+        r = input(f"Imagem {numero} — fase do joelho ({desc}): ").strip()
+        if r in ("1", "2"):
+            return int(r)
         print("  Digite 1 ou 2.")
+
+
+def _perguntar_joelho_frente(numero: int) -> str:
+    while True:
+        r = input(f"Imagem {numero} — joelho a frente: Esquerdo (E) ou Direito (D)? ").strip().upper()
+        if r in ("E", "D"):
+            return r
+        print("  Digite 'E' para esquerdo ou 'D' para direito.")
 
 
 def processar_pasta(pasta_entrada: Path, pasta_saida: Path):
@@ -43,15 +50,17 @@ def processar_pasta(pasta_entrada: Path, pasta_saida: Path):
     print(f"  {total} imagem(ns) encontrada(s). Responda as perguntas:")
     print(f"{'='*50}")
 
-    # Coleta respostas com numeração
     snapshots_configurados = []
     for numero, caminho in enumerate(imagens, start=1):
-        modalidade = _perguntar_modalidade(numero)
-        fase = _perguntar_fase_joelho(numero, modalidade)
+        modalidade   = _perguntar_modalidade(numero)
+        fase         = _perguntar_fase_joelho(numero, modalidade)
+        joelho_frente = _perguntar_joelho_frente(numero) if modalidade == "corrida" else ""
+
         snapshot = SnapshotPostural(
             caminho_imagem=caminho,
             modalidade=modalidade,
             fase_joelho=fase,
+            joelho_frente=joelho_frente,
         )
         snapshots_configurados.append((caminho, snapshot))
 
@@ -64,7 +73,7 @@ def processar_pasta(pasta_entrada: Path, pasta_saida: Path):
         for numero, (caminho, snapshot) in enumerate(snapshots_configurados, start=1):
             imagem = carregar_imagem(caminho)
             if imagem is None:
-                print(f"[ERRO] Imagem {numero} — não foi possível abrir: {caminho.name}")
+                print(f"[ERRO] Imagem {numero} — nao foi possivel abrir: {caminho.name}")
                 continue
 
             snapshot, landmarks = analisador.processar(imagem, snapshot)
@@ -82,7 +91,7 @@ def processar_pasta(pasta_entrada: Path, pasta_saida: Path):
                     print(f"     {ang.mensagem}")
                 sucesso += 1
             else:
-                print(f"[ERRO] Imagem {numero} — não foi possível salvar: {caminho_saida.name}")
+                print(f"[ERRO] Imagem {numero} — nao foi possivel salvar: {caminho_saida.name}")
 
     print(f"\nProcessadas com sucesso: {sucesso}/{total}")
-    print(f"Saídas salvas em: {pasta_saida}")
+    print(f"Saidas salvas em: {pasta_saida}")

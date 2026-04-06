@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-
 @dataclass
 class ResultadoAngulo:
     """Valor de um ângulo calculado e sua avaliação."""
@@ -18,8 +17,9 @@ class ResultadoAngulo:
 class SnapshotPostural:
     """Resultado da detecção de pose em uma imagem."""
     caminho_imagem: Path
-    modalidade: str = ""          # "bike" ou "corrida"
-    fase_joelho: int = 0          # 1 ou 2
+    modalidade: str = ""        # "bike" ou "corrida"
+    fase_joelho: int = 0        # 1 ou 2
+    joelho_frente: str = ""     # "E" ou "D" — só corrida
     pontos: dict = field(default_factory=dict)
     angulos: list = field(default_factory=list)
     pose_detectada: bool = False
