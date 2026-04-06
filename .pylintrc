@@ -1,0 +1,4 @@
+[FORMAT]
+disable=C0301
+# OU aumente o limite
+max-line-length=120

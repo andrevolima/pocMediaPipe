@@ -23,7 +23,6 @@ DESLOCAMENTOS_ROTULOS = {
 
 
 def listar_imagens(pasta: Path) -> list[Path]:
-    """Retorna imagens válidas de uma pasta, ordenadas por nome."""
     return sorted(
         arq for arq in pasta.iterdir()
         if arq.is_file() and arq.suffix.lower() in EXTENSOES_VALIDAS
@@ -31,7 +30,6 @@ def listar_imagens(pasta: Path) -> list[Path]:
 
 
 def carregar_imagem(caminho: Path):
-    """Carrega imagem como array BGR. Retorna None se falhar."""
     return cv2.imread(str(caminho))
 
 
@@ -41,7 +39,6 @@ def salvar_imagem_anotada(
     landmarks_mediapipe,
     caminho_saida: Path,
 ) -> bool:
-    """Anota a imagem com pontos, segmentos e ângulo, e salva em disco."""
     imagem = imagem_original.copy()
     modulo_pose = mp.solutions.pose
     modulo_desenho = mp.solutions.drawing_utils
@@ -57,21 +54,30 @@ def salvar_imagem_anotada(
     for origem, destino in pares:
         cv2.line(imagem, snapshot.pontos[origem], snapshot.pontos[destino], (255, 255, 255), 2)
 
-    # Linha de referência horizontal a partir do quadril
-    quadril = snapshot.pontos["quadril"]
-    cv2.line(imagem, quadril, (quadril[0] - 120, quadril[1]), (255, 0, 0), 2)
+    # Linha de referência horizontal a partir do quadril (só bike)
+    if snapshot.modalidade == "bike":
+        quadril = snapshot.pontos["quadril"]
+        cv2.line(imagem, quadril, (quadril[0] - 120, quadril[1]), (255, 0, 0), 2)
 
     # Pontos e rótulos
     for nome, ponto in snapshot.pontos.items():
         dx, dy = DESLOCAMENTOS_ROTULOS.get(nome, (10, -10))
         cv2.circle(imagem, ponto, 6, (0, 255, 0), -1)
         cv2.putText(imagem, nome, (ponto[0] + dx, ponto[1] + dy),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
-    # Informações de ângulo
-    cv2.putText(imagem, f"Angulo do tronco: {snapshot.angulo_tronco:.1f} graus",
-                (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-    cv2.putText(imagem, "Linha azul = referencia horizontal",
-                (20, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+    # Ângulos e avaliações — empilhados no canto superior esquerdo
+    y = 35
+    for resultado in snapshot.angulos:
+        cor = (0, 200, 0) if resultado.dentro_do_padrao else (0, 0, 220)
+        cv2.putText(imagem, resultado.mensagem, (15, y),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.62, cor, 2)
+        y += 32
+
+    # Modalidade no canto superior direito
+    largura = imagem.shape[1]
+    label_modalidade = f"Modalidade: {snapshot.modalidade.upper()}"
+    cv2.putText(imagem, label_modalidade, (largura - 280, 30),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
 
     return cv2.imwrite(str(caminho_saida), imagem)
