@@ -8,7 +8,6 @@ import mediapipe as mp
 
 from src.domain.models import ResultadoAngulo, SnapshotPostural
 
-
 class AnalisadorDePose:
     """Detecta pontos corporais e calcula ângulos biomecânicos."""
 
@@ -78,9 +77,9 @@ class AnalisadorDePose:
         return ResultadoAngulo(
             nome="Tronco",
             valor=valor,
-            ideal="40° – 50°",
+            ideal="40 - 50 graus",
             dentro_do_padrao=dentro,
-            mensagem=self._formatar_mensagem("Tronco", valor, "40° – 50°", dentro),
+            mensagem=self._formatar_mensagem("Tronco", valor, "40 - 50 graus", dentro),
         )
 
     def _avaliar_braco_tronco(self, pontos: dict) -> ResultadoAngulo:
@@ -91,9 +90,9 @@ class AnalisadorDePose:
         return ResultadoAngulo(
             nome="Braco/Tronco",
             valor=valor,
-            ideal="85° – 90°",
+            ideal="85 - 90 graus",
             dentro_do_padrao=dentro,
-            mensagem=self._formatar_mensagem("Braco/Tronco", valor, "85° – 90°", dentro),
+            mensagem=self._formatar_mensagem("Braco/Tronco", valor, "85 - 90 graus", dentro),
         )
 
     def _avaliar_joelho_bike(self, pontos: dict, fase: int) -> ResultadoAngulo:
@@ -102,10 +101,10 @@ class AnalisadorDePose:
         )
         if fase == 1:
             dentro = valor > 68.0
-            ideal = "> 68°"
+            ideal = "> 68 graus"
         else:
             dentro = 140.0 <= valor <= 145.0
-            ideal = "140° – 145°"
+            ideal = "140 - 145 graus"
         return ResultadoAngulo(
             nome=f"Joelho (fase {fase})",
             valor=valor,
@@ -122,10 +121,10 @@ class AnalisadorDePose:
         )
         if fase == 1:
             dentro = valor < 160.0
-            ideal = "< 160°"
+            ideal = "< 160 graus"
         else:
             dentro = valor < 140.0
-            ideal = "< 140°"
+            ideal = "< 140 graus"
         return ResultadoAngulo(
             nome=f"Joelho corrida (fase {fase})",
             valor=valor,
@@ -161,8 +160,8 @@ class AnalisadorDePose:
 
     @staticmethod
     def _formatar_mensagem(nome: str, valor: float, ideal: str, dentro: bool) -> str:
-        simbolo = "OK" if dentro else "FORA"
-        return f"{nome}: {valor:.1f}° {simbolo} (ideal: {ideal})"
+        status = "OK" if dentro else "FORA"
+        return f"{nome}: {valor:.1f} graus {status} (ideal: {ideal})"
 
     def fechar(self):
         self._pose.close()
