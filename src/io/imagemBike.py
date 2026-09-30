@@ -2,23 +2,14 @@
 """Leitura, anotação e escrita de imagens."""
 
 from pathlib import Path
+import math
 
 import cv2
+import mediapipe as mp
+import numpy as np
 from src.domain.models import SnapshotPostural
 
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
-
-DESLOCAMENTOS_ROTULOS = {
-    "orelha":    (-30, -15),
-    "ombro":     (10, -15),
-    "cotovelo":  (-30, -10),
-    "punho":     (-30, -10),
-    "quadril":   (10, -5),
-    "joelho":    (10, -5),
-    "tornozelo": (10, -5),
-    "pe":        (10, 15),
-}
-
 
 def listar_imagens(pasta: Path) -> list[Path]:
     if not pasta.is_dir():
@@ -57,18 +48,24 @@ def _desenhar_arco_e_valor(imagem, vertice, ponto_a, ponto_b, valor, cor, raio=4
 def anotar_imagem(
     imagem_original,
     snapshot: SnapshotPostural,
+    landmarks_mediapipe=None,
 ) -> np.ndarray:
+    """Desenha os pontos do snapshot e, quando disponível, o esqueleto completo."""
     imagem = imagem_original.copy()
-    modulo_pose = mp.solutions.pose
-    modulo_desenho = mp.solutions.drawing_utils
+    p = snapshot.pontos
+    COR_LINHA = (255, 255, 255)
+    COR_PONTO = (0, 255, 0)
+    COR_ROTULO = (0, 255, 255)
 
     # Esqueleto completo do MediaPipe
-    modulo_desenho.draw_landmarks(imagem, landmarks_mediapipe, modulo_pose.POSE_CONNECTIONS)
+    if landmarks_mediapipe is not None:
+        mp.solutions.drawing_utils.draw_landmarks(
+            imagem, landmarks_mediapipe, mp.solutions.pose.POSE_CONNECTIONS,
+        )
 
     # Segmentos principais
     pares = [
-        ("orelha", "ombro"), ("ombro", "cotovelo"), ("cotovelo", "punho"),
-        ("quadril", "joelho"), ("joelho", "tornozelo"), ("tornozelo", "pe"),
+        ("orelha", "ombro"), ("ombro", "cotovelo"), ("ombro", "quadril"),
     ]
     for origem, destino in pares:
         cv2.line(imagem, snapshot.pontos[origem], snapshot.pontos[destino], (255, 255, 255), 2)
@@ -157,4 +154,4 @@ def anotar_imagem(
 
 def salvar_imagem_anotada(imagem_original, snapshot, landmarks_mediapipe, caminho_saida: Path) -> bool:
     """Compatibilidade com testes manuais em disco."""
-    return cv2.imwrite(str(caminho_saida), anotar_imagem(imagem_original, snapshot))
+    return cv2.imwrite(str(caminho_saida), anotar_imagem(imagem_original, snapshot, landmarks_mediapipe))

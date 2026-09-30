@@ -8,7 +8,7 @@ class PoseNaoDetectada(ValueError):
 
 
 def processar_imagem(imagem, snapshot: SnapshotPostural, analisador):
-    snapshot, _ = analisador.processar(imagem, snapshot)
+    snapshot, landmarks = analisador.processar(imagem, snapshot)
     if not snapshot.pose_detectada:
         raise PoseNaoDetectada("Nenhuma pose foi detectada na imagem.")
-    return snapshot, anotar_imagem(imagem, snapshot)
+    return snapshot, anotar_imagem(imagem, snapshot, landmarks)

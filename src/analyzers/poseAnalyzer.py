@@ -10,7 +10,7 @@ from src.domain.models import ResultadoAngulo, SnapshotPostural
 from src.domain.pontuacao import avaliar_angulo
 
 class AnalisadorDePose:
-    """Detecta pontos corporais e calcula o ângulo do tronco."""
+    """Detecta pontos corporais e avalia os ângulos da modalidade informada."""
 
     def __init__(self):
         modulo = mp.solutions.pose
@@ -22,9 +22,8 @@ class AnalisadorDePose:
         self._conexoes = modulo.POSE_CONNECTIONS
         self._enum = modulo.PoseLandmark
 
-    def processar(self, imagem_bgr, caminho) -> tuple[SnapshotPostural, object]:
-        """Retorna (snapshot, landmarks_mediapipe). landmarks é None se não detectar pose."""
-        snapshot = SnapshotPostural(caminho_imagem=caminho)
+    def processar(self, imagem_bgr, snapshot: SnapshotPostural) -> tuple[SnapshotPostural, object]:
+        """Preenche o snapshot preservando modalidade, fase e lado recebidos."""
 
         imagem_rgb = cv2.cvtColor(imagem_bgr, cv2.COLOR_BGR2RGB)
         resultado = self._pose.process(imagem_rgb)
@@ -35,11 +34,8 @@ class AnalisadorDePose:
         altura, largura = imagem_bgr.shape[:2]
         landmarks = resultado.pose_landmarks.landmark
 
-        snapshot.pontos = self._extrair_pontos(landmarks, largura, altura)
-        snapshot.angulo_tronco = self._angulo_com_horizontal(
-            snapshot.pontos["quadril"],
-            snapshot.pontos["ombro"],
-        )
+        snapshot.pontos = self._extrair_pontos(landmarks, largura, altura, snapshot)
+        snapshot.angulos = self._calcular_angulos(snapshot)
         snapshot.pose_detectada = True
 
         return snapshot, resultado.pose_landmarks
