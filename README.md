@@ -15,16 +15,53 @@ python -m venv .venv
 .venv/Scripts/python.exe main.py
 ```
 
-- Swagger interativo: http://127.0.0.1:8000/docs
-- OpenAPI JSON: http://127.0.0.1:8000/openapi.json
-- ReDoc: http://127.0.0.1:8000/redoc
+- Swagger interativo: http://127.0.0.1:8001/docs
+- OpenAPI JSON: http://127.0.0.1:8001/openapi.json
+- ReDoc: http://127.0.0.1:8001/redoc
 - Disponibilidade: `GET /health`
 
-Alternativa: `.venv/Scripts/python.exe -m uvicorn src.api:app --host 127.0.0.1 --port 8000`.
+Alternativa: `.venv/Scripts/python.exe -m uvicorn src.api:app --host 0.0.0.0 --port 8001`.
 `main.py` também aceita `--host` e `--port`.
 O MediaPipe está fixado em 0.10.21 para preservar a API `mp.solutions.pose`.
 Na primeira análise, o MediaPipe pode baixar o modelo heavy usado pelo projeto;
 nesse caso, é necessário acesso à internet e permissão de escrita no ambiente virtual.
+
+## Conexão com o TCC no Docker
+
+Por padrão, `main.py` escuta em **0.0.0.0:8001**, permitindo conexões do Docker
+à API executada no Windows. Para definir isso explicitamente:
+
+```powershell
+.venv/Scripts/python.exe main.py --host 0.0.0.0 --port 8001
+```
+
+Após atualizar o projeto, pare o servidor antigo com `Ctrl+C` e inicie novamente.
+Confira no log: `Uvicorn running on http://0.0.0.0:8001`.
+No navegador do Windows, use http://127.0.0.1:8001/docs.
+No TCC dentro do Docker, a URL base deve ser `http://host.docker.internal:8001`;
+a análise é enviada para `POST /analises` nessa base.
+`0.0.0.0` é a interface de escuta, não o endereço a configurar no cliente.
+
+Na pasta do TCC, teste a conexão a partir do serviço `app`:
+
+```powershell
+docker compose exec -T app python -c "import httpx; r=httpx.get('http://host.docker.internal:8001/health', timeout=10); print(r.status_code, r.text)"
+```
+
+O esperado é `200 {"status":"ok"}`. Se falhar, teste no Windows:
+
+```powershell
+Invoke-RestMethod -Uri 'http://127.0.0.1:8001/health'
+```
+
+Se funcionar no Windows e falhar no contêiner, verifique a resolução de
+`host.docker.internal` no Docker e a liberação da porta 8001 no Firewall do Windows.
+Se ambos funcionarem, tente a análise pelo TCC e confira se aparece
+`POST /analises` no log desta API. Respostas 404 em `/` e `/favicon.ico` são
+esperadas: essas rotas não foram definidas.
+
+Para uso restrito ao próprio Windows, execute com `--host 127.0.0.1`.
+O padrão `0.0.0.0` também permite acesso pelas interfaces de rede do computador.
 
 ## POST /analises
 
@@ -60,7 +97,7 @@ $payload = @{
     fase_joelho = 2
     imagem_base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($imagem.FullName))
 } | ConvertTo-Json
-$resultado = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/analises' -Method Post -ContentType 'application/json' -Body $payload
+$resultado = Invoke-RestMethod -Uri 'http://127.0.0.1:8001/analises' -Method Post -ContentType 'application/json' -Body $payload
 $resultado.score
 $resultado.resumo
 [IO.File]::WriteAllBytes((Join-Path $PWD 'resultado_api.png'), [Convert]::FromBase64String($resultado.imagem_tratada.base64))
